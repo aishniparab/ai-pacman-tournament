@@ -8,7 +8,7 @@
 
 from captureAgents import CaptureAgent
 import distanceCalculator
-import random, time, util
+import random, time, util, math
 from game import Directions
 import game
 from util import nearestPoint
@@ -49,8 +49,12 @@ class QLearningAgent(CaptureAgent):
   """
   A base class for reflex agents that learns from experience
   """
-  def _initt_(self, **args):
+  def _init_(self, alpha=1.0, epsilon=0.05, gamma=0.8, numTraining = 10):
       self.qValues = util.Counter()
+      self.alpha = float(alpha)
+      self.epsilon = float(epsilon)
+      self.discountRate = float(gamma)
+      self.numTraining = int(numTraining)
 
   def getQValue(self, state, action):
       """
@@ -67,10 +71,10 @@ class QLearningAgent(CaptureAgent):
       Returns max_action Q(state,action)
       max over legal actions.
       """
-      if len(self.getLegalActions(state)) == 0:
+      if len(state.getLegalActions(self.index)) == 0:
           return 0.0
       utility = util.Counter()
-      for action in self.getLegalActions(state):
+      for action in state.getLegalActions(self.index):
           qValue = self.getQValue(state,action)
           utility[action] = qValue
       return utility[utility.argMax()]
@@ -81,7 +85,7 @@ class QLearningAgent(CaptureAgent):
       """
       maxUtility = float("-inf")
       policy = None
-      legalActions = self.getLegalActions(self.index)
+      legalActions = state.getLegalActions(self.index)
       if len(legalActions) == 0:
           return None
       for action in legalActions:
@@ -95,10 +99,10 @@ class QLearningAgent(CaptureAgent):
       """
       compute action to take in the current state
       """
-      legalActions = self.getLegalActions(self.index)
+      legalActions = state.getLegalActions(self.index)
       action = None
 
-      prob = util.flipCoin(self.epsilon)
+      prob = util.flipCoin(float(0.05))
       if prob:
           action = random.choice(legalActions)
       else:
@@ -120,8 +124,9 @@ class OffensiveReflexAgent(QLearningAgent):
   we give you to get an idea of what an offensive agent might look like,
   but it is by no means the best or only way to build an offensive agent.
   """
-  def getAction(self, state):
-      action = QLearningAgent.getAction(self, self.index)
+
+  def chooseAction(self, gameState):
+      action = QLearningAgent.getAction(gameState)
       #self.doAction(state, action)
       return action
 
