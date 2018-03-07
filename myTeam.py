@@ -22,7 +22,7 @@ DefensiveReflexAgent is same as baselineTeam. Only the OffensiveReflexAgent has 
 #################
 
 def createTeam(firstIndex, secondIndex, isRed,
-               first = 'OffensiveReflexAgent', second = 'DefensiveReflexAgent'):
+               first = 'QLearningAgent', second = 'DefensiveReflexAgent'):
   """
   This function should return a list of two agents that will form the
   team, initialized using firstIndex and secondIndex as their agent
@@ -49,12 +49,15 @@ class QLearningAgent(CaptureAgent):
   """
   A base class for reflex agents that learns from experience
   """
-  def _init_(self, alpha=1.0, epsilon=0.05, gamma=0.8, numTraining = 10):
-      self.qValues = util.Counter()
-      self.alpha = float(alpha)
-      self.epsilon = float(epsilon)
-      self.discountRate = float(gamma)
-      self.numTraining = int(numTraining)
+  epsilon = float(0.05)
+  discountRate = float(0.8)
+  numTraining = int(10)
+
+  qValues = util.Counter()
+
+  def _init_(self, index, timeForComputing):
+      CaptureAgent.__init__(self, index, timeForComputing)
+
 
   def getQValue(self, state, action):
       """
@@ -83,6 +86,7 @@ class QLearningAgent(CaptureAgent):
       """
       compute the best action to take in a state.
       """
+
       maxUtility = float("-inf")
       policy = None
       legalActions = state.getLegalActions(self.index)
@@ -91,7 +95,7 @@ class QLearningAgent(CaptureAgent):
       for action in legalActions:
           qValue = self.getQValue(state, action)
           if qValue > maxUtility:
-              maxUtility = qValues
+              maxUtility = qValue
               policy = action
       return policy
 
@@ -110,7 +114,7 @@ class QLearningAgent(CaptureAgent):
 
       return action
 
-  def update(self,action, nextState, reward):
+  def update(self, action, nextState, reward):
       alpha = self.alpha
       discountRate = self.discountRate
       qValue = self.getQValue(state,action)
@@ -118,15 +122,18 @@ class QLearningAgent(CaptureAgent):
 
       self.qValues[(state,action)] = ((1-alpha) * qValue) + alpha * (reward + discountRate * nextUtility)
 
+
 class OffensiveReflexAgent(QLearningAgent):
   """
   A reflex agent that seeks food. This is an agent
   we give you to get an idea of what an offensive agent might look like,
   but it is by no means the best or only way to build an offensive agent.
   """
+  def __init__(self, index, timeForComputing):
+      QLearningAgent.__init__(self, index, timeForComputing)
 
   def chooseAction(self, gameState):
-      action = QLearningAgent.getAction(gameState)
+      action = self.getAction(gameState)
       #self.doAction(state, action)
       return action
 
