@@ -13,6 +13,10 @@ from game import Directions
 import game
 from util import nearestPoint
 
+"""
+DefensiveReflexAgent is same as baselineTeam. Only the OffensiveReflexAgent has been changed to a QLearningAgent
+"""
+
 #################
 # Team creation #
 #################
@@ -40,6 +44,86 @@ def createTeam(firstIndex, secondIndex, isRed,
 ##########
 # Agents #
 ##########
+
+class QLearningAgent(CaptureAgent):
+  """
+  A base class for reflex agents that learns from experience
+  """
+  def _initt_(self, **args):
+      self.qValues = util.Counter()
+
+  def getQValue(self, state, action):
+      """
+      Returns Q(state, action)
+      """
+      if (state,action) not in self.qValues:
+          self.qValues[(state,action)] = 0.0
+          return 0.0
+      else:
+          return self.qValues[(state,action)]
+
+  def getValue(self, state):
+      """
+      Returns max_action Q(state,action)
+      max over legal actions.
+      """
+      if len(self.getLegalActions(state)) == 0:
+          return 0.0
+      utility = util.Counter()
+      for action in self.getLegalActions(state):
+          qValue = self.getQValue(state,action)
+          utility[action] = qValue
+      return utility[utility.argMax()]
+
+  def getPolicy(self, state):
+      """
+      compute the best action to take in a state.
+      """
+      maxUtility = float("-inf")
+      policy = None
+      legalActions = self.getLegalActions(self.index)
+      if len(legalActions) == 0:
+          return None
+      for action in legalActions:
+          qValue = self.getQValue(state, action)
+          if qValue > maxUtility:
+              maxUtility = qValues
+              policy = action
+      return policy
+
+  def getAction(self, state):
+      """
+      compute action to take in the current state
+      """
+      legalActions = self.getLegalActions(self.index)
+      action = None
+
+      prob = util.flipCoin(self.epsilon)
+      if prob:
+          action = random.choice(legalActions)
+      else:
+          action = self.getPolicy(state)
+
+      return action
+
+  def update(self,action, nextState, reward):
+      alpha = self.alpha
+      discountRate = self.discountRate
+      qValue = self.getQValue(state,action)
+      nextUtility = self.getValue(nextState)
+
+      self.qValues[(state,action)] = ((1-alpha) * qValue) + alpha * (reward + discountRate * nextUtility)
+
+class OffensiveReflexAgent(QLearningAgent):
+  """
+  A reflex agent that seeks food. This is an agent
+  we give you to get an idea of what an offensive agent might look like,
+  but it is by no means the best or only way to build an offensive agent.
+  """
+  def getAction(self, state):
+      action = QLearningAgent.getAction(self, self.index)
+      #self.doAction(state, action)
+      return action
 
 class ReflexCaptureAgent(CaptureAgent):
   """
@@ -97,60 +181,37 @@ class ReflexCaptureAgent(CaptureAgent):
     """
     return {'successorScore': 1.0}
 
-class OffensiveReflexAgent(ReflexCaptureAgent):
-  """
-  A reflex agent that seeks food. This is an agent
-  we give you to get an idea of what an offensive agent might look like,
-  but it is by no means the best or only way to build an offensive agent.
-  """
-  def getFeatures(self, gameState, action):
-    features = util.Counter()
-    successor = self.getSuccessor(gameState, action)
-    features['successorScore'] = self.getScore(successor)
-
-    # Compute distance to the nearest food
-    foodList = self.getFood(successor).asList()
-    if len(foodList) > 0: # This should always be True,  but better safe than sorry
-      myPos = successor.getAgentState(self.index).getPosition()
-      minDistance = min([self.getMazeDistance(myPos, food) for food in foodList])
-      features['distanceToFood'] = minDistance
-    return features
-
-  def getWeights(self, gameState, action):
-    return {'successorScore': 100, 'distanceToFood': -1}
-
 class DefensiveReflexAgent(ReflexCaptureAgent):
-  """
-  A reflex agent that keeps its side Pacman-free. Again,
-  this is to give you an idea of what a defensive agent
-  could be like.  It is not the best or only way to make
-  such an agent.
-  """
+    """
+    A reflex agent that keeps its side Pacman-free. Again,
+    this is to give you an idea of what a defensive agent
+    could be like.  It is not the best or only way to make
+    such an agent.
+    """
+    def getFeatures(self, gameState, action):
+      features = util.Counter()
+      successor = self.getSuccessor(gameState, action)
 
-  def getFeatures(self, gameState, action):
-    features = util.Counter()
-    successor = self.getSuccessor(gameState, action)
+      myState = successor.getAgentState(self.index)
+      myPos = myState.getPosition()
 
-    myState = successor.getAgentState(self.index)
-    myPos = myState.getPosition()
+      # Computes whether we're on defense (1) or offense (0)
+      features['onDefense'] = 1
+      if myState.isPacman: features['onDefense'] = 0
 
-    # Computes whether we're on defense (1) or offense (0)
-    features['onDefense'] = 1
-    if myState.isPacman: features['onDefense'] = 0
+      # Computes distance to invaders we can see
+      enemies = [successor.getAgentState(i) for i in self.getOpponents(successor)]
+      invaders = [a for a in enemies if a.isPacman and a.getPosition() != None]
+      features['numInvaders'] = len(invaders)
+      if len(invaders) > 0:
+        dists = [self.getMazeDistance(myPos, a.getPosition()) for a in invaders]
+        features['invaderDistance'] = min(dists)
 
-    # Computes distance to invaders we can see
-    enemies = [successor.getAgentState(i) for i in self.getOpponents(successor)]
-    invaders = [a for a in enemies if a.isPacman and a.getPosition() != None]
-    features['numInvaders'] = len(invaders)
-    if len(invaders) > 0:
-      dists = [self.getMazeDistance(myPos, a.getPosition()) for a in invaders]
-      features['invaderDistance'] = min(dists)
+      if action == Directions.STOP: features['stop'] = 1
+      rev = Directions.REVERSE[gameState.getAgentState(self.index).configuration.direction]
+      if action == rev: features['reverse'] = 1
 
-    if action == Directions.STOP: features['stop'] = 1
-    rev = Directions.REVERSE[gameState.getAgentState(self.index).configuration.direction]
-    if action == rev: features['reverse'] = 1
+      return features
 
-    return features
-
-  def getWeights(self, gameState, action):
-    return {'numInvaders': -1000, 'onDefense': 100, 'invaderDistance': -10, 'stop': -100, 'reverse': -2}
+    def getWeights(self, gameState, action):
+      return {'numInvaders': -1000, 'onDefense': 100, 'invaderDistance': -10, 'stop': -100, 'reverse': -2}
