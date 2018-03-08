@@ -22,7 +22,7 @@ DefensiveReflexAgent is same as baselineTeam. Only the OffensiveReflexAgent has 
 #################
 
 def createTeam(firstIndex, secondIndex, isRed,
-               first = 'QLearningAgent', second = 'DefensiveReflexAgent'):
+               first = 'OffensiveReflexAgent', second = 'DefensiveReflexAgent'):
   """
   This function should return a list of two agents that will form the
   team, initialized using firstIndex and secondIndex as their agent
@@ -99,7 +99,7 @@ class QLearningAgent(CaptureAgent):
               policy = action
       return policy
 
-  def getAction(self, state):
+  def chooseAction(self, state):
       """
       compute action to take in the current state
       """
@@ -122,6 +122,17 @@ class QLearningAgent(CaptureAgent):
 
       self.qValues[(state,action)] = ((1-alpha) * qValue) + alpha * (reward + discountRate * nextUtility)
 
+  def getSuccessor(self, gameState, action):
+    """
+    Finds the next successor which is a grid position (location tuple).
+    """
+    successor = gameState.generateSuccessor(self.index, action)
+    pos = successor.getAgentState(self.index).getPosition()
+    if pos != nearestPoint(pos):
+      # Only half a grid position was covered
+      return successor.generateSuccessor(self.index, action)
+    else:
+      return successor
 
 class OffensiveReflexAgent(QLearningAgent):
   """
@@ -129,13 +140,25 @@ class OffensiveReflexAgent(QLearningAgent):
   we give you to get an idea of what an offensive agent might look like,
   but it is by no means the best or only way to build an offensive agent.
   """
-  def __init__(self, index, timeForComputing):
-      QLearningAgent.__init__(self, index, timeForComputing)
+  """def __init__(self, index, timeForComputing):
+      QLearningAgent.__init__(self, index, timeForComputing)"""
 
-  def chooseAction(self, gameState):
-      action = self.getAction(gameState)
-      #self.doAction(state, action)
-      return action
+  def playOptimally(self, gameState):
+      action = self.chooseAction(gameState)
+      features = util.Counter()
+      successor = self.getSuccessor(gameState, action)
+      features['successorScore'] = self.getScore(successor)
+
+      # Compute distance to the nearest food
+      foodList = self.getFood(successor).asList()
+      if len(foodList) > 0: # This should always be True,  but better safe than sorry
+        myPos = successor.getAgentState(self.index).getPosition()
+        minDistance = min([self.getMazeDistance(myPos, food) for food in foodList])
+        features['distanceToFood'] = minDistance
+      return getFeatures
+
+  def getWeights(self, gameState, action):
+    return {'successorScore': 100, 'distanceToFood': -1}
 
 class ReflexCaptureAgent(CaptureAgent):
   """
@@ -146,7 +169,7 @@ class ReflexCaptureAgent(CaptureAgent):
     Picks among the actions with the highest Q(s,a).
     """
     actions = gameState.getLegalActions(self.index)
-
+    print actions
     # You can profile your evaluation time by uncommenting these lines
     # start = time.time()
     values = [self.evaluate(gameState, a) for a in actions]
