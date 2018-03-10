@@ -101,15 +101,15 @@ class OffensiveReflexAgent(ReflexCaptureAgent):
       features['distanceToFood'] = minDistance
 
     enemies = [successor.getAgentState(i) for i in self.getOpponents(successor)]
-    ghostPacman = [a for a in enemies if a.isPacman and a.getPosition() != None]
-    ghostEnemy = [a for a in enemies if not a.isPacman and a.getPosition() != None]
+    invaders = [a for a in enemies if a.isPacman and a.getPosition() != None]
+    chasers = [a for a in enemies if not a.isPacman and a.getPosition() != None]
 
     #if pacman is trying to eat pellets and there is a ghost being mean
     #get distance to closest ghost
     """dist2ghost = []
     if successor.getAgentState(self.index).isPacman:
-        if len(ghostEnemy) > 0:
-            for ghost in ghostEnemy:
+        if len(chasers) > 0:
+            for ghost in chasers:
                 dist2ghost.append(self.getMazeDistance(myPos, ghost.getPosition()))
             features['dist2ghost'] = min(dist2ghost)"""
 
@@ -186,12 +186,12 @@ class JamesBond(ReflexCaptureAgent):
         if action == Directions.STOP: features['stop'] = 1
 
         enemies = [successor.getAgentState(i) for i in self.getOpponents(successor)]
-        ghostPacman = [a for a in enemies if a.isPacman and a.getPosition() != None]
-        ghostEnemy = [a for a in enemies if not a.isPacman and a.getPosition() != None]
+        invaders = [a for a in enemies if a.isPacman and a.getPosition() != None]
+        chasers = [a for a in enemies if not a.isPacman and a.getPosition() != None]
 
         if myState.scaredTimer == 0:
-            if len(ghostPacman) > 0:
-                dist2enemyPac = [self.getMazeDistance(myPos, a.getPosition()) for a in ghostPacman]
+            if len(invaders) > 0:
+                dist2enemyPac = [self.getMazeDistance(myPos, a.getPosition()) for a in invaders]
                 if len(dist2enemyPac)>0:
                   features['attackEnemyPacman'] = min(dist2enemyPac)
         else:
@@ -202,17 +202,17 @@ class JamesBond(ReflexCaptureAgent):
                     elif nextPos in Actions.getLegalNeighbors(ghost.getPosition(), walls):
                         features['caveat'] += -8
 
-        for ghost in ghostEnemy:
+        for ghost in chasers:
             if myState.isPacman and ghost.scaredTimer > 0:
-                dist2enemyGhost = [self.getMazeDistance(myPos, a.getPosition()) for a in ghostEnemy]
+                dist2enemyGhost = [self.getMazeDistance(myPos, a.getPosition()) for a in chasers]
                 if len(dist2enemyGhost)>0:
                   features['eatGhost'] = min(dist2enemyGhost)
             elif myState.isPacman and nextPos in Actions.getLegalNeighbors(ghost.getPosition(), walls) or nextPos == ghost.getPosition():
-                dist2enemyGhost = [self.getMazeDistance(myPos, a.getPosition()) for a in ghostEnemy]
+                dist2enemyGhost = [self.getMazeDistance(myPos, a.getPosition()) for a in chasers]
                 if len(dist2enemyGhost)>0:
                   features['runFromGhost'] = max(dist2enemyGhost)
             else:
-                dists = [self.getMazeDistance(myPos, a.getPosition()) for a in ghostEnemy]
+                dists = [self.getMazeDistance(myPos, a.getPosition()) for a in chasers]
                 if len(dists)>0:
                   features['attackEnemyPacman'] = min(dists)
 
