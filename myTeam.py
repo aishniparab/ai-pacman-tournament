@@ -192,7 +192,8 @@ class JamesBond(ReflexCaptureAgent):
         if myState.scaredTimer == 0:
             if len(ghostPacman) > 0:
                 dist2enemyPac = [self.getMazeDistance(myPos, a.getPosition()) for a in ghostPacman]
-                features['attackEnemyPacman'] = min(dist2enemyPac)
+                if len(dist2enemyPac)>0:
+                  features['attackEnemyPacman'] = min(dist2enemyPac)
         else:
             for ghost in enemies:
                 if ghost.getPosition() != None:
@@ -204,12 +205,16 @@ class JamesBond(ReflexCaptureAgent):
         for ghost in ghostEnemy:
             if myState.isPacman and ghost.scaredTimer > 0:
                 dist2enemyGhost = [self.getMazeDistance(myPos, a.getPosition()) for a in ghostEnemy]
-                features['eatGhost'] = min(dist2enemyGhost)
+                if len(dist2enemyGhost)>0:
+                  features['eatGhost'] = min(dist2enemyGhost)
             elif myState.isPacman and nextPos in Actions.getLegalNeighbors(ghost.getPosition(), walls) or nextPos == ghost.getPosition():
-                dist2ghost = [self.getMazeDistance(myPos, a.getPosition()) for a in ghostEnemy]
-                features['runFromGhost'] = max(dist2enemyGhost)
+                dist2enemyGhost = [self.getMazeDistance(myPos, a.getPosition()) for a in ghostEnemy]
+                if len(dist2enemyGhost)>0:
+                  features['runFromGhost'] = max(dist2enemyGhost)
             else:
-                features['attackEnemyPacman'] = min([self.getMazeDistance(myPos, a.getPosition()) for a in ghostEnemy])
+                dists = [self.getMazeDistance(myPos, a.getPosition()) for a in ghostEnemy]
+                if len(dists)>0:
+                  features['attackEnemyPacman'] = min(dists)
 
         features.divideAll(10)
         return features
