@@ -633,7 +633,7 @@ def readCommand( argv ):
                     help='Catch exceptions and enforce time limits')
 
   options, otherjunk = parser.parse_args(argv)
-  assert len(otherjunk) == 0, "Unrecognized options: " + str(otherjunk)
+  # assert len(otherjunk) == 0, "Unrecognized options: " + str(otherjunk)
   args = dict()
 
   # Choose a display format

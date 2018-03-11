@@ -277,6 +277,11 @@ class CollaborativeAgent(ReflexCaptureAgent):
     return features
 
   def getWeights(self, gameState, action):
-      return {'successorScore': 100, 'firstEatFood':-20, 'stepBack': -100, \
-      'secondEatFood':-20, 'eatInvader':-100, 'eatFood':-100,'eatPowerPill':-10, \
-      'eatGhost':-50, 'ghostNearby':50, 'stop': -100, 'reverse': -2}
+
+      import sys
+      import ast
+      # print ast.literal_eval('[ "A","B","C" , " D"]')
+      weights = ast.literal_eval(sys.argv[4])
+      firsteat,eatinv,eatfd,ghostnear = weights
+      return {'successorScore': 100, 'stepBack': -25, 'firstEatFood':int(firsteat), 'eatInvader':int(eatinv), 'eatFood':int(eatfd),'eatPowerPill':-10, \
+      'eatGhost':-50, 'ghostNearby':int(ghostnear), 'stop': -100, 'reverse': -2}
