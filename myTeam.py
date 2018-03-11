@@ -18,7 +18,7 @@ from util import nearestPoint
 #################
 
 def createTeam(firstIndex, secondIndex, isRed,
-               first = 'OffensiveReflexAgent', second = 'OffensiveReflexAgent'):
+               first = 'CollaborativeAgent', second = 'CollaborativeAgent'):
 
   return [eval(first)(firstIndex), eval(second)(secondIndex)]
 
@@ -82,142 +82,201 @@ class ReflexCaptureAgent(CaptureAgent):
     """
     return {'successorScore': 1.0}
 
-class OffensiveReflexAgent(ReflexCaptureAgent):
+class CollaborativeAgent(ReflexCaptureAgent):
   """
   A reflex agent that seeks food. This is an agent
   we give you to get an idea of what an offensive agent might look like,
   but it is by no means the best or only way to build an offensive agent.
   """
   def getFeatures(self, gameState, action):
+    features = util.Counter()
+    successor = self.getSuccessor(gameState, action)
+    features['successorScore'] = self.getScore(successor)
+    myState = successor.getAgentState(self.index)
+    myPos = myState.getPosition()
+    myX, myY = myPos
+    x, y = Actions.directionToVector(action)
+    nextX, nextY = int(myX + x), int(myY + y)
+
     isFirst = self.index<2
+
+    isFirstOffending = False #keep track of offensive and defensive agents
+    isSecondOffending = False #keep track of offensive and defensive agents
+
+    foodList = self.getFood(gameState).asList()
+    """if self.isRed:
+        ourFood = gameState.getRedCapsules()
+    if self.isBlue:
+        opponentFood = gameState.getBlueCapsules()"""
 
     walls = gameState.getWalls()
     vertical = walls.height/2
     horizontal = walls.width/2
 
-
-    features = util.Counter()
-    successor = self.getSuccessor(gameState, action)
-    features['successorScore'] = self.getScore(successor)
-    myState = successor.getAgentState(self.index)
-    myPos = myState.getPosition()
-
-    # Compute distance to the nearest food
-    foodList = self.getFood(successor).asList()
-    if len(foodList) > 0: # This should always be True,  but better safe than sorry
-      myPos = successor.getAgentState(self.index).getPosition()
-      minDistance = min([self.getMazeDistance(myPos, food) for food in foodList])
-      features['distanceToFood'] = minDistance
-
-    my_x,my_y = myPos
-    if isFirst and my_y > horizontal:
-      features['right_side'] = -1
-    elif isFirst and my_y <= horizontal:
-      features['right_side'] = 1
-    if not isFirst and my_y > horizontal:
-      features['right_side'] = 1
-    elif not isFirst and my_y <= horizontal:
-      features['right_side'] = -1
-
-    if my_x > vertical:
-      features['attacking']=1
-    else:
-      features['attacking']=0
-
     enemies = [successor.getAgentState(i) for i in self.getOpponents(successor)]
-    ghost_dists = [self.getMazeDistance(myPos,ghost.getPosition()) for ghost in enemies if ghost.getPosition()!=None]
     invaders = [enemy for enemy in enemies if enemy.isPacman and enemy.getPosition()!=0]
+    chasers = [a for a in enemies if not (a.isPacman) and a.getPosition() != None]
     pm_dists = [self.getMazeDistance(myPos,invader.getPosition()) for invader in invaders if invader.getPosition()!=None]
+    pm_pos = [invader.getPosition() for invader in invaders if invader.getPosition() != None]
+    ghost_dists = [self.getMazeDistance(myPos,ghost.getPosition()) for ghost in enemies if ghost.getPosition()!=None]
 
-    if len(ghost_dists)>0 and features['attacking']==1:
-      min_ghost_dist = min(ghost_dists)
-      features['min_ghost_dist']=min_ghost_dist**2
-    if len(pm_dists)>0 and features['attacking']==0:
-      min_pm_dists = min(pm_dists)
-      features['min_pm_dist']=min_pm_dists**2
-    elif len(pm_dists)==0:
-      features['dangerous'] = 1
-    return features
-
-  def getWeights(self, gameState, action):
-    return {'successorScore': 100, 'distanceToFood': -1, 'right_side': 75, 'attacking': 100, 'min_ghost_dist':25,
-            'min_pm_dist': -25, 'dangerous': -200}
-
-class DefensiveReflexAgent(ReflexCaptureAgent):
-  """
-  A reflex agent that keeps its side Pacman-free. Again,
-  this is to give you an idea of what a defensive agent
-  could be like.  It is not the best or only way to make
-  such an agent.
-  """
-
-  def getFeatures(self, gameState, action):
-    features = util.Counter()
-    successor = self.getSuccessor(gameState, action)
-
-    myState = successor.getAgentState(self.index)
-    myPos = myState.getPosition()
-
-    # Computes whether we're on defense (1) or offense (0)
-    features['onDefense'] = 1
-    if myState.isPacman: features['onDefense'] = 0
-    features['successorScore'] = self.getScore(successor)
-    foodList = self.getFood(successor).asList()
+    "splitting food top and bottom"
+    #make it get food by setting feature to closest pellet
     if len(foodList) > 0: # This should always be True,  but better safe than sorry
-      myPos = successor.getAgentState(self.index).getPosition()
-      minDistance = min([self.getMazeDistance(myPos, food) for food in foodList])
-      features['distanceToFood'] = minDistance
+        firstFood = [(x,y) for x,y in foodList if y > 1.5*vertical] #assign tophalf to first agent
+        secondFood = [(x,y) for x,y in foodList if y < 1.5*vertical] #assign bottom half to second agent
+        foodMinDistance = min([self.getMazeDistance(myPos, food) for food in foodList])
+        if len(firstFood) > 0:
+            firstMinDistance = min([self.getMazeDistance(myPos, food) for food in firstFood])
+        else:
+            firstMinDistance = 0
+        if len(secondFood) > 0:
+            secondMinDistance = min([self.getMazeDistance(myPos, food) for food in secondFood])
+        else:
+            secondMinDistance = 0
 
-    # Computes distance to invaders we can see
-    enemies = [successor.getAgentState(i) for i in self.getOpponents(successor)]
-    invaders = [a for a in enemies if a.isPacman and a.getPosition() != None]
-    features['numInvaders'] = len(invaders)
-    if len(invaders) > 0:
-      dists = [self.getMazeDistance(myPos, a.getPosition()) for a in invaders]
-      features['invaderDistance'] = 1/(max(dists)+1)**2
+    "}"
+
+    #there is no invader make both go get food in diff directions
+    if len(invaders) == 0:
+        isFirstOffending = True #we are only offending
+        isSecondOffending = True
+        features['firstEatFood'] = firstMinDistance
+        features['secondEatFood'] = secondMinDistance
+        features['eatInvader'] = 0
+        #send closest offender to powerpill
+        dist2pill = [self.getMazeDistance(myPos,pill) for pill in gameState.getBlueCapsules()]
+        if len(dist2pill) > 0:
+            first2pill = min(dist2pill)
+            second2pill = min(dist2pill)
+        else:
+            first2pill = 0
+            second2pill = 0
+        if isFirst:
+            features['eatPowerPill'] = first2pill
+        else:
+            features['eatPowerPill'] = second2pill
+
+        #eat ghost if scared
+        for ghosts in chasers:
+            if ghost.scaredTimer > 0:
+                #don't eat food eat ghost instead
+                features['firstEatFood'] = 0
+                features['secondEatFood'] = 0
+                features['eatGhost'] = min(ghost_dists)
+                features['ghostNearby'] = 0
+            else:
+                features['eatGhost'] = 0
+                features['ghostNearby'] = min(ghost_dists)
+
+            """
+            if there is an invader and we are making one offensive and one defensive
+            then either of the following cases are true:
+                isFirst isPacman
+                notisFirst not isPacman
+                notisFirst isPacman
+                isFirst not isPacman
+            """
+    else: #if there is invader make one offensive and one defensive
+        if isFirst and myState.isPacman: #if its first and its a pacman
+            # "isFirst is offending"
+            features['firstEatFood'] = foodMinDistance
+            if len(ghost_dists) > 0:
+                features['ghostNearby'] = min(ghost_dists)
+            else:
+                features['ghostNearby'] = 0
+            if len(pm_dists)>0:
+                features['secondEatFood'] = 1/(max(pm_dists)+1)**2 #discourage second from getting food
+            else:
+                features['secondEatFood'] = 0
+
+            features['eatInvader'] = 0 #don't care about the invader
+            dist2pill = [self.getMazeDistance(myPos,pill) for pill in gameState.getBlueCapsules()]
+            if len(dist2pill) > 0:
+                first2pill = min(dist2pill)
+            else:
+                first2pill = 0
+            if len(ghost_dists)!=0 and first2pill < min(ghost_dists):
+                features['eatPowerPill'] = first2pill
+            else:
+                features['eatPowerPill'] = 0
+            for ghosts in chasers:
+                if ghost.scaredTimer > 0:
+                    #don't eat food eat ghost instead
+                    features['firstEatFood'] = 0
+                    features['eatGhost'] = min(ghost_dists)
+                else: #if ghost not scared, stay away
+                    features['eatGhost'] = 0
+                    if len(ghost_dists) > 0:
+                        features['ghostNearby'] = min(ghost_dists)
+                    else:
+                        features['ghostNearby'] = 0
+
+        #whoever is defending (first or second) make them eat ghost
+        elif isFirst and not myState.isPacman:
+            # "isFirst is defending"
+            features['firstEatFood'] = -1
+            features['secondEatFood'] = foodMinDistance
+            if len(pm_dists) > 0:
+                features['eatInvader'] = 1/(max(pm_dists)+1)**2
+            features['eatInvader'] = 0
+
+        elif not isFirst and not myState.isPacman:
+            #"isSecond is defending"
+            features['secondGetFood'] = -1 #make sure its not getting food
+            features['firstGetFood'] = foodMinDistance
+            if len(pm_dists) > 0:
+                features['eatInvader'] = 1/(max(pm_dists)+1)**2
+            features['eatInvader'] = 0
+            #use pm_pos to check if its close to our powerpill
+
+        elif not isFirst and myState.isPacman:
+            # "isSecond is offending"
+            isFirstOffending = False
+            isSecondOffending = True #make the second one defend
+            #if its first and its a pacman
+            if len(pm_dists)>0:
+                features['firstEatFood'] = 1/(max(pm_dists)+1)**2 #discourage first from getting food
+            else:
+                features['firstEatFood'] = 0
+            features['secondEatFood'] = foodMinDistance
+            features['eatInvader'] = 0 #don't care about the invader
+            if len(ghost_dists) > 0:
+                features['ghostNearby'] = min(ghost_dists)
+            else:
+                features['ghostNearby'] = 0
+            dist2pill = [self.getMazeDistance(myPos,pill) for pill in gameState.getBlueCapsules()]
+            if len(dist2pill) > 0:
+                second2pill = min(dist2pill)
+            else:
+                second2pill = 0
+            if len(ghost_dists)!=0 and second2pill < min(ghost_dists):
+                features['eatPowerPill'] = second2pill
+            else:
+                features['eatPowerPill'] = 0
+            for ghost in chasers:
+                if ghost.scaredTimer > 0:
+                    #don't eat food eat ghost instead
+                    features['secondEatFood'] = 0
+                    features['eatGhost'] = min(ghost_dists)
+                else: #if ghost not scared, stay away
+                    features['eatGhost'] = 0
+                    if len(ghost_dists) > 0:
+                        features['ghostNearby'] = min(ghost_dists)
+                    else:
+                        features['ghostNearby'] = 0
+                    if (nextX,nextY) in Actions.getLegalNeighbors(ghost.getPosition(), walls) or \
+                       (nextX,nextY) == ghost.getPosition():
+                        dists = [self.getMazeDistance(myPos,a.getPosition()) for a in chasers]
+                        features['stepBack'] = max(dists)
+
 
     if action == Directions.STOP: features['stop'] = 1
     rev = Directions.REVERSE[gameState.getAgentState(self.index).configuration.direction]
     if action == rev: features['reverse'] = 1
-
     return features
 
   def getWeights(self, gameState, action):
-    return {'numInvaders': -1000, 'onDefense': 100, 'invaderDistance': -10, 'stop': -100, 'reverse': -2}
-class uberDefenseAgent(ReflexCaptureAgent):
-  def getFeatures(self, gameState, action):
-    features = util.Counter()
-    successor = self.getSuccessor(gameState, action)
-
-    myState = successor.getAgentState(self.index)
-    myPos = myState.getPosition()
-
-    # nextPos = successor.getAgentState(self.index).getPosition()
-    # features['onDefense'] f= 1
-    # if myState.isPacman: eatures['onDefense'] = 0
-
-
-    # Computes distance to invaders we can see
-    enemies = [successor.getAgentState(i) for i in self.getOpponents(successor)]
-    invaders = [a for a in enemies if a.isPacman and a.getPosition() != None]
-    enemyPacmans = [a for a in enemies if not a.isPacman and a.getPosition!=None]
-    features['numInvaders'] = len(invaders)
-    if len(invaders) > 0:
-      dists = [self.getMazeDistance(myPos, a.getPosition()) for a in invaders]
-      features['invaderDistance'] = min(dists)
-
-
-    # if len(closeToEating)>0:
-    #   features["closeToEating"]= min (closeToEating)
-
-    if action == Directions.STOP: features['stop'] = 1
-    rev = Directions.REVERSE[gameState.getAgentState(self.index).configuration.direction]
-    if action == rev: features['reverse'] = 1
-
-    if myState.isPacman and min([enemy.scaredTimer for enemy in enemyPacmans])!=0:
-      features["can_eat"] = min([self.getMazeDistance(myPos,ghost.getPosition()) for ghost in enemyPacmans])
-
-    return features  
-  def getWeights(self, gameState, action):
-    return {'numInvaders': -1000, 'invaderDistance': -100, 'stop': -10, 'reverse': -2, 'successorScore': 100,
-            'distanceToFood': -1, 'closeToEating': -100, 'can_eat': -30}
+      return {'successorScore': 100, 'firstEatFood':-20, 'stepBack': -100, \
+      'secondEatFood':-20, 'eatInvader':-100, 'eatFood':-100,'eatPowerPill':-10, \
+      'eatGhost':-50, 'ghostNearby':50, 'stop': -100, 'reverse': -2}
