@@ -4,13 +4,12 @@ import sys
 
 # arg1 = sys.argv[1]
 # arg2 = sys.argv[2]
-weights_TOT = [-1000,100,350,-10,-100,0,0,-350,500,-50,-2]
-weights = [-1000,100,350,-10,-100,0,0,-350,500,-50,-2]
-
+weights_TOT = [60, -5, -65, -45, -80, -90, -15, -40, 50, -140, -7]
+weights = [60, -5, -65, -45, -80, -90, -15, -40, 50, -140, -7]
 import random
 def increment_array(arr):
 	for i in range(len(arr)):
-		arr[i] = weights_TOT[i]+random.choice(range(-100,150,50))
+		arr[i] = weights_TOT[i]+0.05*weights_TOT[i]*random.choice(range(-10,11,1))
 	# n = len(arr)
 	# curr=0
 	# while(arr[curr]==10):
@@ -27,11 +26,11 @@ increment_array(weights)
 # weights[len(weights)-1]=arg2
 for _ in range(5**8):
 	scores = 0
-	for i in range(3):
+	for i in range(10):
 		p = subprocess.Popen(["python", "capture.py", "-r", "myTeam", "-q", str(weights), "|","grep","Average Score"],stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 		out,err = p.communicate()
 		scores+=int(out.split("Scores:        ")[1].split()[0])
-	avg_score = scores/3
+	avg_score = scores/10.0
 	print(avg_score, weights)
 	f = open("weights.txt","a")
 	f.write(str(avg_score))
