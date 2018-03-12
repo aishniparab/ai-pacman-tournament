@@ -4,12 +4,12 @@ import sys
 
 # arg1 = sys.argv[1]
 # arg2 = sys.argv[2]
-weights_TOT = [60, -5, -65, -45, -80, -90, -15, -40, 50, -140, -7]
-weights = [60, -5, -65, -45, -80, -90, -15, -40, 50, -140, -7]
+weights_TOT = [67.2, -4.2, -68.9, -45.9, -81.6, -84.6, -15.3, -34.4, 43.0, -137.2, -7.42]
+weights = [67.2, -4.2, -68.9, -45.9, -81.6, -84.6, -15.3, -34.4, 43.0, -137.2, -7.42]
 import random
 def increment_array(arr):
 	for i in range(len(arr)):
-		arr[i] = weights_TOT[i]+0.05*weights_TOT[i]*random.choice(range(-10,11,1))
+		arr[i] = weights_TOT[i]+0.01*weights_TOT[i]*random.choice(range(-10,11,1))
 	# n = len(arr)
 	# curr=0
 	# while(arr[curr]==10):
