@@ -119,7 +119,8 @@ class CollaborativeAgent(ReflexCaptureAgent):
     pm_dists = [self.getMazeDistance(myPos,invader.getPosition()) for invader in invaders if invader.getPosition()!=None]
     pm_pos = [invader.getPosition() for invader in invaders if invader.getPosition() != None]
     ghost_dists = [self.getMazeDistance(myPos,ghost.getPosition()) for ghost in enemies if ghost.getPosition()!=None]
-
+    num_invaders = len(invaders)
+    features['num_invaders']=num_invaders
     "splitting food top and bottom"
     #make it get food by setting feature to closest pellet
     if len(foodList) > 0: # This should always be True,  but better safe than sorry
@@ -282,6 +283,6 @@ class CollaborativeAgent(ReflexCaptureAgent):
       import ast
       # print ast.literal_eval('[ "A","B","C" , " D"]')
       weights = ast.literal_eval(sys.argv[4])
-      firsteat,eatinv,eatfd,ghostnear = weights
-      return {'successorScore': 100, 'stepBack': -25, 'firstEatFood':int(firsteat), 'eatInvader':int(eatinv), 'eatFood':int(eatfd),'eatPowerPill':-10, \
-      'eatGhost':-50, 'ghostNearby':int(ghostnear), 'stop': -100, 'reverse': -2}
+      num_invaders,succscore,stepback,firsteat,eatinv,eatfd,eatpp,eatghost,ghostnear,stop,reverse = weights
+      return {'num_invaders': int(num_invaders),'successorScore': int(succscore), 'stepBack': int(stepback), 'firstEatFood':int(firsteat), 'eatInvader':int(eatinv), 'eatFood':int(eatfd),'eatPowerPill':int(eatpp), \
+      'eatGhost':int(eatghost), 'ghostNearby':int(ghostnear), 'stop': int(stop), 'reverse': int(reverse)}

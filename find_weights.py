@@ -4,17 +4,25 @@ import sys
 
 # arg1 = sys.argv[1]
 # arg2 = sys.argv[2]
+weights_TOT = [-1000,100,350,-10,-100,0,0,-350,500,-50,-2]
+weights = [-1000,100,350,-10,-100,0,0,-350,500,-50,-2]
 
+import random
 def increment_array(arr):
-	n = len(arr)
-	curr=0
-	while(arr[curr]==50):
-		arr[curr]=-50
-		curr+=1
-	arr[curr]+=25
+	for i in range(len(arr)):
+		arr[i] = weights_TOT[i]+random.choice(range(-100,150,50))
+	# n = len(arr)
+	# curr=0
+	# while(arr[curr]==10):
+	# 	arr[curr]=-10
+	# 	curr+=1
+	# arr[curr]+=25
+import random
 
-
-weights = [-50]*4
+increment_array(weights)
+# random.seed
+# print(random.choice(range(-100,100,20)))
+# weights = [-10]*4
 # weights[len(weights)-2]=arg1
 # weights[len(weights)-1]=arg2
 for _ in range(5**8):
